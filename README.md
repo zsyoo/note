@@ -1,0 +1,2 @@
+# note
+Some learning records 
