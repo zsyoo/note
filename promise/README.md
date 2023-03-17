@@ -81,3 +81,12 @@ if (this.state === 'pending') {
 - 如果成功的回调还是`pormise`，就递归继续解析
 
 **总结**：除了执行结果是`promise`对象外，其余结果全部直接返回。我们把`object/function`选出来，然后在里面判断`x.then`是不是函数，如果是的，我们把他当做一个`promise`实例继续解析，如果不是，那就是普通对象，将其直接`resolve`
+
+## catch方法
+代码如下
+```js
+catch(fn){
+  return this.then(null,fn);
+}
+```
+catch相当于then失败回调的简写，只能捕捉到上一层的错误，具体的输出可以看这里

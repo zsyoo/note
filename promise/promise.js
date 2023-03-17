@@ -97,6 +97,9 @@ class MyPromise {
     })
     return p2
   }
+  catch(fn){
+    return this.then(null,fn);
+  }
 }
 
 // 如果是上一步失败 let x = rejectFn(this.reason)
