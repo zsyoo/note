@@ -39,17 +39,33 @@ class MyPromise {
     }
   }
   // .then
-  then(resolveFn,rejectFn) {
+  then(onFulfilled,onRejected) {
+    // onFulfilled如果不是函数，就忽略onFulfilled，直接返回value
+    onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => value;
+    // onRejected如果不是函数，就忽略onRejected，直接扔出错误
+    onRejected = typeof onRejected === 'function' ? onRejected : err => { throw err };
     // then的链式调用，所以需要返回promise
     let promise2 = new MyPromise((resolve,reject) => {
       if(this.state === 'fulfilled') {
-        // then的执行结果，传递给resolve(value)
-        let x = resolveFn(this.value)
-        resolvePromise(promise2, x, resolve,reject)
+        setTimeout(() => {
+          try {
+            // then的执行结果，传递给resolve(value)
+            let x = onFulfilled(this.value);
+            resolvePromise(promise2, x, resolve, reject)
+          } catch (e) {
+            reject(e)
+          }
+        }, 0)
       }
       if (this.state === 'rejected') {
-        let x = rejectFn(this.reason)
-        resolvePromise(promise2, x, resolve,reject)
+        setTimeout(() => {
+          try {
+            let x = onRejected(this.reason)
+            resolvePromise(promise2, x, resolve, reject)
+          } catch (e) {
+            reject(e)
+          }
+        }, 0)
       }
       if(this.state === 'pedding') {
         // 当状态还未改变，例如请求还没返回值或者有定时器，此时状态为pedding
@@ -57,13 +73,25 @@ class MyPromise {
         // 由于Promise的一个实例可以多次.then，所以用数组存储
         // onFulfilled传入到成功数组
         this.onResolvedCallbacks.push(()=>{
-          let x = onFulfilled(this.value)
-          resolvePromise(promise2, x, resolve,reject)
+          setTimeout(() => {
+            try {
+              let x = onFulfilled(this.value);
+              resolvePromise(promise2, x, resolve, reject)
+            } catch (e) {
+              reject(e)
+            }
+          }, 0)
         })
         // onRejected传入到失败数组
         this.onRejectedCallbacks.push(()=>{
-          let x = onRejected(this.reason)
-          resolvePromise(promise2, x, resolve,reject)
+          setTimeout(() => {
+            try {
+              let x = onRejected(this.reason)
+              resolvePromise(promise2, x, resolve, reject)
+            } catch (e) {
+              reject(e)
+            }
+          }, 0)
         })
       }
     })
