@@ -97,46 +97,47 @@ class MyPromise {
     })
     return p2
   }
-  // 如果是上一步失败 let x = rejectFn(this.reason)
-  // 但是经过失败处理函数x=2,那么经过resolvePromise的处理也是走resolve
-  // 其实这个函数主要是用来转换成promise的，如果成功就走resolve，转换过程中有错误，就走reject
-  // 也就是说上层promise状态为失败，走then失败回调，不影响下层继续走成功的回调
-  resolvePromise(promise2, x, resolve,reject) {
-    // 循环引用报错
-    if(promise2 === x) {
-      reject()
-    }
-    // 失败成功的方法都传入，为了保证只调用其中的一个方法
-    let called
-    if(x!=null && (typeof x === 'object' || typeof x === 'function')) {
-      try {
-        let then = x.then
-        if(typeof then === 'function') {
-          // 为什么不用x.then()呢？
-          then.call(x, y => {
-            // 成功和失败只能调用一个
-            if (called) return;
-            called = true;
-            // resolve的结果依旧是promise 那就继续解析
-            resolvePromise(promise2, y, resolve, reject);
-          }, err => {
-            // 成功和失败只能调用一个
-            if (called) return;
-            called = true;
-            reject(err);// 失败了就失败了
-          })
-        } else {
-          resolve(x)
-        }
-      } catch {
-        // 也属于失败
-        if (called) return;
-        called = true;
-        // 取then出错了那就不要在继续执行了
-        reject(e)
+}
+
+// 如果是上一步失败 let x = rejectFn(this.reason)
+// 但是经过失败处理函数x=2,那么经过resolvePromise的处理也是走resolve
+// 其实这个函数主要是用来转换成promise的，如果成功就走resolve，转换过程中有错误，就走reject
+// 也就是说上层promise状态为失败，走then失败回调，不影响下层继续走成功的回调
+function resolvePromise(promise2, x, resolve,reject) {
+  // 循环引用报错
+  if(promise2 === x) {
+    reject()
+  }
+  // 失败成功的方法都传入，为了保证只调用其中的一个方法
+  let called
+  if(x!=null && (typeof x === 'object' || typeof x === 'function')) {
+    try {
+      let then = x.then
+      if(typeof then === 'function') {
+        // 为什么不用x.then()呢？
+        then.call(x, y => {
+          // 成功和失败只能调用一个
+          if (called) return;
+          called = true;
+          // resolve的结果依旧是promise 那就继续解析
+          resolvePromise(promise2, y, resolve, reject);
+        }, err => {
+          // 成功和失败只能调用一个
+          if (called) return;
+          called = true;
+          reject(err);// 失败了就失败了
+        })
+      } else {
+        resolve(x)
       }
-    } else {
-      resolve(x)
+    } catch {
+      // 也属于失败
+      if (called) return;
+      called = true;
+      // 取then出错了那就不要在继续执行了
+      reject(e)
     }
+  } else {
+    resolve(x)
   }
 }
