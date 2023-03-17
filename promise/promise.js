@@ -40,24 +40,75 @@ class MyPromise {
   }
   // .then
   then(resolveFn,rejectFn) {
-    if(this.state == 'fulfilled') {
-      resolveFn(this.value)
+    // then的链式调用，所以需要返回promise
+    let promise2 = new MyPromise((resolve,reject) => {
+      if(this.state === 'fulfilled') {
+        // then的执行结果，传递给resolve(value)
+        let x = resolveFn(this.value)
+        resolvePromise(promise2, x, resolve,reject)
+      }
+      if (this.state === 'rejected') {
+        let x = rejectFn(this.reason)
+        resolvePromise(promise2, x, resolve,reject)
+      }
+      if(this.state === 'pedding') {
+        // 当状态还未改变，例如请求还没返回值或者有定时器，此时状态为pedding
+        // 我们把成功后的回调存储起来，当状态改变时，再去调用成功的回调
+        // 由于Promise的一个实例可以多次.then，所以用数组存储
+        // onFulfilled传入到成功数组
+        this.onResolvedCallbacks.push(()=>{
+          let x = onFulfilled(this.value)
+          resolvePromise(promise2, x, resolve,reject)
+        })
+        // onRejected传入到失败数组
+        this.onRejectedCallbacks.push(()=>{
+          let x = onRejected(this.reason)
+          resolvePromise(promise2, x, resolve,reject)
+        })
+      }
+    })
+    return p2
+  }
+  // 如果是上一步失败 let x = rejectFn(this.reason)
+  // 但是经过失败处理函数x=2,那么经过resolvePromise的处理也是走resolve
+  // 其实这个函数主要是用来转换成promise的，如果成功就走resolve，转换过程中有错误，就走reject
+  // 也就是说上层promise状态为失败，走then失败回调，不影响下层继续走成功的回调
+  resolvePromise(promise2, x, resolve,reject) {
+    // 循环引用报错
+    if(promise2 === x) {
+      reject()
     }
-    if (this.state == 'rejected') {
-      rejectFn(this.reason)
-    }
-    if(this.state == 'pedding') {
-      // 当状态还未改变，例如请求还没返回值或者有定时器，此时状态为pedding
-      // 我们把成功后的回调存储起来，当状态改变时，再去调用成功的回调
-      // 由于Promise的一个实例可以多次.then，所以用数组存储
-      // onFulfilled传入到成功数组
-      this.onResolvedCallbacks.push(()=>{
-        onFulfilled(this.value);
-      })
-      // onRejected传入到失败数组
-      this.onRejectedCallbacks.push(()=>{
-        onRejected(this.reason);
-      })
+    // 失败成功的方法都传入，为了保证只调用其中的一个方法
+    let called
+    if(x!=null && (typeof x === 'object' || typeof x === 'function')) {
+      try {
+        let then = x.then
+        if(typeof then === 'function') {
+          // 为什么不用x.then()呢？
+          then.call(x, y => {
+            // 成功和失败只能调用一个
+            if (called) return;
+            called = true;
+            // resolve的结果依旧是promise 那就继续解析
+            resolvePromise(promise2, y, resolve, reject);
+          }, err => {
+            // 成功和失败只能调用一个
+            if (called) return;
+            called = true;
+            reject(err);// 失败了就失败了
+          })
+        } else {
+          resolve(x)
+        }
+      } catch {
+        // 也属于失败
+        if (called) return;
+        called = true;
+        // 取then出错了那就不要在继续执行了
+        reject(e)
+      }
+    } else {
+      resolve(x)
     }
   }
 }

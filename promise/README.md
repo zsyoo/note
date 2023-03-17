@@ -69,3 +69,14 @@ if (this.state === 'pending') {
 ```
 **小结**:之前一直以为当`resolve/reject`后才能执行`then`,按照这个代码逻辑，其实在`p.then()`的时候，即使状态还没确定，也已经执行`then`了，只不过先将回调函数存储起来，到状态确定的时候才执行，所以更准确的应该说，在状态还未确定时，不执行`then`中的函数，而不是不执行`then`。
 
+# then的链式调用
+如何实现链式调用？我们在then中返回一个新的promise实例，将执行结果作为参数，传到resolve/reject中，这样在新的promise中我们将判断条件和resolve(value)/reject(err)逻辑写好，等着之后.then就行了
+
+而由于执行结果的不同，我们要对其进行不一样的处理，我们定义`resolvePromise`进行这一步处理，处理的规则有下面几条
+-若循环引用，则报“循环引用”错误
+-x 不能是null
+-x 是普通值 直接resolve(x)
+-x 是对象或者函数（包括promise），let then = x.then
+-如果then是个函数，则用call执行then，第一个参数是this，后面是成功的回调和失败的回调
+-如果成功的回调还是pormise，就递归继续解析
+**总结**：除了执行结果是promise对象外，其余结果全部直接返回。我们把`object/function`选出来，然后在里面判断x.then是不是函数，如果是的，我们把他当做一个promise实例继续解析，如果不是，那就是普通对象，将其直接resolve
